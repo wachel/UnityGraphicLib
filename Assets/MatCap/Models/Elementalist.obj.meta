@@ -1,0 +1,112 @@
+fileFormatVersion: 2
+guid: 4dfd50b0c1898e049a34072dc214d0c3
+timeCreated: 1489037749
+licenseType: Free
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23db2a48.obj
+    100004: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23dce8f8.obj
+    100006: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23deaf70.obj
+    100008: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23df9290.obj
+    100010: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e0b828.obj
+    100012: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e1a310.obj
+    100014: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e2c670.obj
+    400000: //RootNode
+    400002: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23db2a48.obj
+    400004: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23dce8f8.obj
+    400006: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23deaf70.obj
+    400008: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23df9290.obj
+    400010: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e0b828.obj
+    400012: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e1a310.obj
+    400014: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e2c670.obj
+    2300000: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23db2a48.obj
+    2300002: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23dce8f8.obj
+    2300004: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23deaf70.obj
+    2300006: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23df9290.obj
+    2300008: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e0b828.obj
+    2300010: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e1a310.obj
+    2300012: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e2c670.obj
+    3300000: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23db2a48.obj
+    3300002: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23dce8f8.obj
+    3300004: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23deaf70.obj
+    3300006: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23df9290.obj
+    3300008: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e0b828.obj
+    3300010: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e1a310.obj
+    3300012: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e2c670.obj
+    4300000: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23db2a48.obj
+    4300002: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23dce8f8.obj
+    4300004: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23deaf70.obj
+    4300006: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23df9290.obj
+    4300008: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e0b828.obj
+    4300010: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e1a310.obj
+    4300012: SUN_Online_-_ver_0_7_5_4_(_Protocol_ver___2_5_3_)-23e2c670.obj
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 0.5
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 0
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

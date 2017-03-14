@@ -1,0 +1,91 @@
+#define FOG_TYPE_NONE 0
+#define FOG_TYPE_LINEAR 1
+#define FOG_TYPE_HEIGHT 2
+
+#if _FOG_TYPE_NONE
+#define FOG_TYPE FOG_TYPE_NONE
+#elif _FOG_TYPE_LINEAR
+#define FOG_TYPE FOG_TYPE_LINEAR
+#elif _FOG_TYPE_HEIGHT
+#define FOG_TYPE FOG_TYPE_HEIGHT
+#endif
+
+#define INSTANCE_TYPE_NONE 0
+#define INSTANCE_TYPE_PRS 1
+#define INSTANCE_TYPE_PRS_LM 2
+
+
+#if _INSTANCE_TYPE_PRS
+#define INSTANCE_TYPE INSTANCE_TYPE_PRS
+#elif _INSTANCE_TYPE_PRS_LM
+#define INSTANCE_TYPE INSTANCE_TYPE_PRS_LM
+#else
+#define INSTANCE_TYPE INSTANCE_TYPE_NONE
+#endif
+
+float4 ShadowLightAttr0;
+float4 ShadowLightAttr1;
+float4 ShadowLightAttr2;
+
+#define LIGHT_ATTR_ITEM_NUM_1 1
+#define LIGHT_ATTR_ITEM_NUM_2 2
+#define LIGHT_ATTR_ITEM_NUM_3 3
+#define LIGHT_ATTR_ITEM_NUM_4 4
+#define LIGHT_ATTR_ITEM_NUM_5 5
+#define LIGHT_ATTR_ITEM_NUM_6 6
+#define LIGHT_ATTR_ITEM_NUM_7 7
+#define LIGHT_ATTR_ITEM_NUM_8 8
+
+#if _LIGHT_ATTR_ITEM_NUM_0
+#define LIGHT_ATTR_ITEM_NUM 5
+#elif _LIGHT_ATTR_ITEM_NUM_1
+#define LIGHT_ATTR_ITEM_NUM 1
+#elif _LIGHT_ATTR_ITEM_NUM_2
+#define LIGHT_ATTR_ITEM_NUM 2
+#elif _LIGHT_ATTR_ITEM_NUM_3
+#define LIGHT_ATTR_ITEM_NUM 3
+#elif _LIGHT_ATTR_ITEM_NUM_4
+#define LIGHT_ATTR_ITEM_NUM 4
+#elif _LIGHT_ATTR_ITEM_NUM_5
+#define LIGHT_ATTR_ITEM_NUM 5
+#elif _LIGHT_ATTR_ITEM_NUM_6
+#define LIGHT_ATTR_ITEM_NUM 6
+#elif _LIGHT_ATTR_ITEM_NUM_7
+#define LIGHT_ATTR_ITEM_NUM 7
+#elif _LIGHT_ATTR_ITEM_NUM_8
+#define LIGHT_ATTR_ITEM_NUM 8
+#else
+#define LIGHT_ATTR_ITEM_NUM 5
+#endif
+
+#define LIGHT_NUM_1 1
+#define LIGHT_NUM_2 2
+#define LIGHT_NUM_3 3
+#define LIGHT_NUM_4 4
+#define LIGHT_NUM_5 5
+#define LIGHT_NUM_6 6
+#define LIGHT_NUM_7 7
+#define LIGHT_NUM_8 8
+
+#if _LIGHT_NUM_0
+#define LIGHT_NUM 4
+#elif _LIGHT_NUM_1
+#define LIGHT_NUM 1
+#elif _LIGHT_NUM_2
+#define LIGHT_NUM 2
+#elif _LIGHT_NUM_3
+#define LIGHT_NUM 3
+#elif _LIGHT_NUM_4
+#define LIGHT_NUM 4
+#elif _LIGHT_NUM_5
+#define LIGHT_NUM 5
+#elif _LIGHT_NUM_6
+#define LIGHT_NUM 6
+#elif _LIGHT_NUM_7
+#define LIGHT_NUM 7
+#elif _LIGHT_NUM_8
+#define LIGHT_NUM 8
+#else
+#define LIGHT_NUM 4
+#endif
+
