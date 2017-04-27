@@ -1,3 +1,5 @@
+// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
 // Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
 
 // MatCap Shader, (c) 2015 Jean Moreno
@@ -7,12 +9,13 @@ Shader "MatCap/PBR"
 	Properties
 	{
 		_MainTex ("Base (RGB)", 2D) = "white" {}
+		_Color("Color",Color) = (1,1,1,1)
 		_BumpMap ("Normal Map", 2D) = "bump" {}
 		_MatCap ("MatCap (RGB)", 2D) = "white" {}
-		_MatcapColor("MatCap Color",Color) = (1,1,1,1)
 		_MatcapBrightness("Matcap Brightness",float) = 4
-		_MetallicRoughtness("_MetallicRoughtness",2D) = "black"{}
-		[Toggle(MATCAP_ACCURATE)] _MatCapAccurate ("Accurate Calculation", Int) = 0
+
+		_MetallicRoughness("Metallic(R) And Roughness(G)",2D) = "black"{}
+		_MetallicRoughnessColor("Metallic Roughness Color",Color) = (1,1,1,1)
 	}
 	
 	Subshader
@@ -22,12 +25,11 @@ Shader "MatCap/PBR"
 		Pass
 		{
 			Tags { "LightMode" = "Always" }
-			
+			Cull Off
 			CGPROGRAM
 				#pragma vertex vert
 				#pragma fragment frag
 				#pragma fragmentoption ARB_precision_hint_fastest
-				#pragma shader_feature MATCAP_ACCURATE
 				#include "UnityCG.cginc"
 				
 				struct v2f
@@ -49,7 +51,7 @@ Shader "MatCap/PBR"
 				v2f vert (appdata_tan v)
 				{
 					v2f o;
-					o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
+					o.pos = UnityObjectToClipPos (v.vertex);
 					o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);
 					o.uv_bump = TRANSFORM_TEX(v.texcoord,_BumpMap);
 					
@@ -67,17 +69,28 @@ Shader "MatCap/PBR"
 				uniform sampler2D _MainTex;
 				uniform sampler2D _BumpMap;
 				uniform sampler2D _MatCap;
-				uniform sampler2D _MetallicRoughtness;
+				uniform sampler2D _MetallicRoughness;
 				float4 _MatCap_TexelSize;
-				float4 _MatcapColor;
+				float4 _Color;
 				float _MatcapBrightness;
+				float4 _MetallicRoughnessColor;
 				
+				float4 gamma_correct_began(float4 color)
+				{
+					return color*color;
+				}
+
+				float4 gamma_correct_ended(float4 color)
+				{
+					return sqrt(color);
+				}
+
 				fixed4 frag (v2f i) : COLOR
 				{
-					fixed4 tex = tex2D(_MainTex, i.uv);
+					fixed4 tex = gamma_correct_began(tex2D(_MainTex, i.uv) * _Color);
+					//return gamma_correct_ended(tex);
 					fixed3 normals = UnpackNormal(tex2D(_BumpMap, i.uv_bump));
-					float4 mr = tex2D(_MetallicRoughtness, i.uv);
-
+					float4 mr = tex2D(_MetallicRoughness, i.uv) * _MetallicRoughnessColor;
 					float3 worldNorm;
 					worldNorm.x = dot(i.tSpace0.xyz, normals);
 					worldNorm.y = dot(i.tSpace1.xyz, normals);
@@ -88,30 +101,27 @@ Shader "MatCap/PBR"
 					float3 up = normalize(cross(view, right));
 					float2 uv = float2(dot(worldNorm, right), dot(worldNorm, up)) * 0.5 + 0.5;
 
-					//float3 up = normalize(mul((float3x3)UNITY_MATRIX_V, float3(0,1,0)));
-					////return float4(up, 1);
-					//float3 right = normalize(cross(up, view));
-					//float2 uv = float2(dot(worldNorm, right), dot(worldNorm, up)) * 0.5 + 0.5;
-
 					float3 h = normalize(-view + worldNorm);
 
 					float metallic = mr.x;
 					float roughness = 1-mr.y;
 					float reflection = mr.z;
 
-					float f0 = lerp(0, 0.2, reflection);
+					float f0 = 0.1;//lerp(0, 0.2, reflection);
 					float fresnel = f0 + (1 - f0)*pow(1 - dot(-view,h), 2);
-					//return fresnel.xxxx;
-					int maxMipmapLevel = log2(_MatCap_TexelSize.w / 8);
+					int maxMipmapLevel = log2(_MatCap_TexelSize.w / 16);
 					int mipmap = roughness * maxMipmapLevel;
-					float4 lightGlossy = tex2Dlod(_MatCap, float4(uv, mipmap, mipmap));
-					float4 lightRough = tex2Dlod(_MatCap, float4(uv, maxMipmapLevel, maxMipmapLevel));
+					float4 lightRough = gamma_correct_began(tex2Dlod(_MatCap, float4(uv, maxMipmapLevel, maxMipmapLevel))) * _MatcapBrightness;
+					float4 lightGlossy = gamma_correct_began(tex2Dlod(_MatCap, float4(uv, mipmap, mipmap))) * _MatcapBrightness;
+					float4 lightSpecular = (lightGlossy - lightRough);
 
-					float refFactor = lerp(fresnel,1,metallic);
-					float4 refColor = lerp(pow(lightGlossy,3) * 1, lightGlossy*tex, metallic);
+					float4 finalColor = metallic * lightGlossy * tex + (1- metallic) * (lightRough * tex * (1-fresnel) + lightSpecular * fresnel);
 
-					float4 finalColor = refFactor*refColor + tex*(1 - refFactor)*lightRough;
-					return finalColor * _MatcapBrightness;
+					//float refFactor = lerp(fresnel,1,metallic);
+					//float4 refColor = lerp(pow(lightGlossy,3) * 1, lightGlossy*tex, metallic);
+					//
+					//float4 finalColor = refFactor*refColor + tex*(1 - refFactor)*lightRough;
+					return gamma_correct_ended(finalColor);
 				}
 			ENDCG
 		}
