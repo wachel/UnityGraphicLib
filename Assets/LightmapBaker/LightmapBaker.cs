@@ -28,7 +28,7 @@ public class LightmapBaker : MonoBehaviour
         LightmapData[] lightmapDatas = new LightmapData[LightmapSettings.lightmaps.Length];
         for (int i = 0; i < LightmapSettings.lightmaps.Length; i++) {
             lightmapDatas[i] = new LightmapData();
-            lightmapDatas[i].lightmapLight = lightmaps[i];
+            lightmapDatas[i].lightmapColor = lightmaps[i];
         }
         LightmapSettings.lightmaps = lightmapDatas;
     }

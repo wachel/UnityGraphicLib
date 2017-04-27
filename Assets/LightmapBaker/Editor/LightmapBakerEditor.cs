@@ -178,7 +178,7 @@ public class LightmapBakerEditor : Editor
     {
         Texture2D[] rlt = new Texture2D[LightmapSettings.lightmaps.Length];
         for(int i = 0; i < rlt.Length; i++) {
-            rlt[i] = LightmapSettings.lightmaps[i].lightmapLight;
+            rlt[i] = LightmapSettings.lightmaps[i].lightmapColor;
         }
         return rlt;
     }
