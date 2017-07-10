@@ -90,7 +90,7 @@ Shader "MatCap/PBR"
 					fixed4 tex = gamma_correct_began(tex2D(_MainTex, i.uv) * _Color);
 					//return gamma_correct_ended(tex);
 					fixed3 normals = UnpackNormal(tex2D(_BumpMap, i.uv_bump));
-					float4 mr = tex2D(_MetallicRoughness, i.uv) * _MetallicRoughnessColor;
+					float4 mr = gamma_correct_began(tex2D(_MetallicRoughness, i.uv)) * _MetallicRoughnessColor;
 					float3 worldNorm;
 					worldNorm.x = dot(i.tSpace0.xyz, normals);
 					worldNorm.y = dot(i.tSpace1.xyz, normals);
@@ -109,7 +109,7 @@ Shader "MatCap/PBR"
 
 					float f0 = 0.1;//lerp(0, 0.2, reflection);
 					float fresnel = f0 + (1 - f0)*pow(1 - dot(-view,h), 2);
-					int maxMipmapLevel = log2(_MatCap_TexelSize.w / 16);
+					int maxMipmapLevel = log2(_MatCap_TexelSize.w / 8);
 					int mipmap = roughness * maxMipmapLevel;
 					float4 lightRough = gamma_correct_began(tex2Dlod(_MatCap, float4(uv, maxMipmapLevel, maxMipmapLevel))) * _MatcapBrightness;
 					float4 lightGlossy = gamma_correct_began(tex2Dlod(_MatCap, float4(uv, mipmap, mipmap))) * _MatcapBrightness;
