@@ -7,7 +7,7 @@
 	SubShader
 	{
 		// No culling or depth
-		Cull Off ZWrite Off ZTest Always
+		//Cull Off ZWrite Off ZTest Always
 
 		Pass
 		{
@@ -42,7 +42,7 @@
 			fixed4 frag (v2f i) : SV_Target
 			{
 				fixed4 col = tex2D(_MainTex, i.uv);
-				return fixed4(col.xy * 16, pow(2, col.z * 255.0), 1);
+				return fixed4(col.xy * 5, pow(2, col.z * 255.0), 1);
 			}
 			ENDCG
 		}
@@ -76,11 +76,12 @@
 			}
 			
 			sampler2D _MainTex;
+			float _Scale;
 
 			fixed4 frag (v2f i) : SV_Target
 			{
 				fixed4 col = tex2D(_MainTex, i.uv);
-				return fixed4(col.xyz, 1);
+				return fixed4(col.xyz * 1, 1);
 			}
 			ENDCG
 		}

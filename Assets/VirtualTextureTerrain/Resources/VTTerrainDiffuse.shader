@@ -18,7 +18,7 @@
 	}
 
 	CGINCLUDE
-		#pragma surface surf Lambert vertex:SplatmapVert finalcolor:SplatmapFinalColor finalprepass:SplatmapFinalPrepass finalgbuffer:SplatmapFinalGBuffer
+		#pragma surface surf M1Lightmap vertex:SplatmapVert finalcolor:SplatmapFinalColor finalprepass:SplatmapFinalPrepass finalgbuffer:SplatmapFinalGBuffer
 		#pragma multi_compile_fog
 		#include "TerrainSplatmapCommon.cginc"
 
@@ -29,11 +29,16 @@
 		float4 _PhysicalTex_TexelSize;
 		float4 _IndirectiveTex_TexelSize;
 
+		half4 LightingM1Lightmap(SurfaceOutput s, half3 lightDir, half atten)
+		{
+			return half4(1, 1, 1, 1);
+		}
+
 		float2 GetPhysicalUV(float2 mainUV) {
 			fixed4 t = tex2D(_IndirectiveTex, mainUV);//间接纹理颜色，xy为物理纹理的tile索引，2^z为格子大小
 			half size = pow(2, round(t.z * 255.0));//间接纹理上当前格子的大小像素大小，最小为1，最大为_MainTex_TexelSize.zw
 			float2 uv = frac(mainUV * (_IndirectiveTex_TexelSize.zw / size));//计算在间接纹理格子内的uv，范围0~1
-			uv = float2(uv.x, 1 - uv.y);//反转y，试出来的
+			uv.y = 1 - uv.y;//反转y，试出来的
 			float border = 4 / (_TileSize * _PhysicalTex_TexelSize.z);
 			uv = lerp(float2(border, border), float2(1 - border, 1 - border), uv);//border，返回值类似于0.05~0.95
 

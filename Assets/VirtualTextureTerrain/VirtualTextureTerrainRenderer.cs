@@ -1,19 +1,22 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace VirtualTexture
 {
-
     public class VirtualTextureTerrainRenderer : MonoBehaviour
     {
-        Material previewMat;                //调试用
-        Material previewMat2;               //调试用
-        Material rendererMat;               //调试用
         Material matDebug;
-        public RenderTexture indirectiveTexture;   
-        public RenderTexture physicsTexture;
-        public RenderTexture physicsNormal;
+        public RenderTexture indirectiveTexture;
+        public Texture2D physicsTexture;
+        public Texture2D physicsNormal;
+
+        public RenderTexture tempPhysicsTexture;
+        public RenderTexture tempPhysicsNormal;
+
+        RenderTexture tempPhysicsTexture2;
+        RenderTexture tempPhysicsNormal2;
 
         public bool useNormalMap = true;
         public int quadTreeSize = 256;      //设置细分程度
@@ -35,28 +38,31 @@ namespace VirtualTexture
         List<UpdatePhysicalTextureCommand> updatePhysicsCommandDrawList = new List<UpdatePhysicalTextureCommand>();
 
         Terrain.MaterialType defaultMaterialType;
+        Material defaultMaterial;
 
         public void Awake()
         {
             terrain = GetComponent<Terrain>();
             defaultMaterialType = terrain.materialType;
-        }
+            defaultMaterial = terrain.materialTemplate;
 
-        void Start()
-        {
             tileManager = new PhysicsTileManager();
             tileManager.Init(physicsSize, physicsTileSize);
             qt = new QuadTree();
             qt.Init(quadTreeSize);
-            qt.funPostSplit = OnPostSplitNode;
-            qt.funPrevMerge = OnPrevMergeNode;
-            qt.funPrevSplit = OnPrevSplitNode;
-            qt.funPostMerge = OnPostMergeNode;
+            qt.funNewNode = OnNewNode;
+            qt.funDeleteNode = OnDeleteNode;
 
-            physicsTexture = new RenderTexture(physicsSize, physicsSize, 0, RenderTextureFormat.ARGB32);
+            physicsTexture = new Texture2D(physicsSize, physicsSize,  TextureFormat.ARGB32, false);
             if (useNormalMap) {
-                physicsNormal = new RenderTexture(physicsSize, physicsSize, 0, RenderTextureFormat.ARGB32);
+                physicsNormal = new Texture2D(physicsSize, physicsSize, TextureFormat.ARGB32,false);
             }
+            tempPhysicsTexture = new RenderTexture(physicsTileSize, physicsTileSize, 0, RenderTextureFormat.ARGB32);
+            tempPhysicsNormal = new RenderTexture(physicsTileSize, physicsTileSize, 0, RenderTextureFormat.ARGB32);
+
+            tempPhysicsTexture2 = new RenderTexture(physicsTileSize * 4, physicsTileSize * 4, 0, RenderTextureFormat.ARGB32);
+            tempPhysicsNormal2 = new RenderTexture(physicsTileSize * 4, physicsTileSize * 4, 0, RenderTextureFormat.ARGB32);
+
             updatePhysicsMaterial = new Material(Shader.Find("Hidden/VTBakeBaseTexture"));
             nullTexture = new Texture2D(1, 1);
             defaultNormal = new Texture2D(1, 1);
@@ -68,18 +74,10 @@ namespace VirtualTexture
             indirectiveTexture.filterMode = FilterMode.Point;
             indirectiveTexture.useMipMap = false;
             updateIndirectiveMaterial = new Material(Shader.Find("Hidden/VTUpdateIndirectiveTexture"));
+        }
 
-            if (previewMat) {
-                previewMat.mainTexture = physicsTexture;
-            }
-            if (previewMat2) {
-                previewMat2.mainTexture = indirectiveTexture;
-            }
-            if (rendererMat) {
-                rendererMat.SetTexture("_IndirectiveTex", indirectiveTexture);
-                rendererMat.SetTexture("_PhysicalTex", physicsTexture);
-                rendererMat.SetFloat("_TileSize", physicsTileSize / (float)physicsSize);
-            }
+        void Start()
+        {
             SetTerrainMaterial();
         }
 
@@ -89,7 +87,7 @@ namespace VirtualTexture
             if (defaultMaterialType == Terrain.MaterialType.BuiltInStandard) {
                 terrain.materialTemplate = new Material(Shader.Find("Nature/Terrain/VTStandard"));
             } else {
-                terrain.materialTemplate = new Material(Shader.Find("Nature/Terrain/VTDiffuse"));
+                terrain.materialTemplate = new Material(Shader.Find("Unlit/M1VTTerrain"));
             }
             terrain.materialTemplate.SetTexture("_IndirectiveTex", indirectiveTexture);
             terrain.materialTemplate.SetTexture("_PhysicalTex", physicsTexture);
@@ -105,6 +103,7 @@ namespace VirtualTexture
         public void OnDisable()
         {
             terrain.materialType = defaultMaterialType;
+            terrain.materialTemplate = defaultMaterial;
         }
 
         public void OnGUI()
@@ -119,127 +118,190 @@ namespace VirtualTexture
                     Graphics.DrawTexture(new Rect(256, 0, 128, 128), physicsNormal, matDebug, 1);
                 }
             }
-        }
-
-        void OnPrevSplitNode(QtNode node)
-        {
 
         }
 
-        void OnPostSplitNode(QtNode node)
-        {
-            if (node.tile != null) {
-                PhysicsTile tile = node.tile;
-                //ClearPhysicsTexture(tile);
-                updatePhysicsCommandDrawList.Add(new UpdatePhysicalTextureCommand(tile,physicsSize,null,0));
-                UpdatePhysicsTexture();
-                tileManager.Recyle(tile);
-                node.tile = null;
-            }
-            for (int i = 0; i < 4; i++) {
-                PhysicsTile tile = tileManager.GetAnyUnusedTile();
-                if (tile != null) {
-                    node.children[i].tile = tile;
-                    //DrawPhysicsTexture(tile, node.children[i]);
-                    updatePhysicsCommandDrawList.Add(new UpdatePhysicalTextureCommand(tile, physicsSize, node.children[i], quadTreeSize));
-                    UpdatePhysicsTexture();
-                    nodesToUpdate.Add(new UpdateIndirectiveCommand(node.children[i]));
-                }
-            }
-        }
-
-        void OnPrevMergeNode(QtNode node)
-        {
-            for (int i = 0; i < 4; i++) {
-                if (node.children[i].tile != null) {
-                    PhysicsTile tile = node.children[i].tile;
-                    //ClearPhysicsTexture(tile);
-                    updatePhysicsCommandDrawList.Add(new UpdatePhysicalTextureCommand(tile, physicsSize, null, 0));
-                    UpdatePhysicsTexture();
-                    tileManager.Recyle(tile);
-                }
-            }
-
-        }
-
-        void OnPostMergeNode(QtNode node)
+        void OnNewNode(QtNode node)
         {
             PhysicsTile tile = tileManager.GetAnyUnusedTile();
             if (tile != null) {
-                node.tile = tile;
-                //DrawPhysicsTexture(tile, node);
                 updatePhysicsCommandDrawList.Add(new UpdatePhysicalTextureCommand(tile, physicsSize, node, quadTreeSize));
                 UpdatePhysicsTexture();
-                nodesToUpdate.Add(new UpdateIndirectiveCommand(node));
+                node.tile = tile;
+                nodesToUpdate.Add(new UpdateIndirectiveCommand(node,false));
             }
         }
 
-        //void DrawPhysicsTexture(PhysicsTile tile, QtNode node)
-        //{
-        //    Rect rect = new Rect(tile.uv.x * physicsSize, tile.uv.y * physicsSize, tile.size * physicsSize, tile.size * physicsSize);
-        //    //Graphics.DrawTexture(rect, nullTexture, updatePhysicsMaterial, 0);
-        //
-        //    Material mat = updatePhysicsMaterial;
-        //    TerrainData terrainData = terrain.terrainData;
-        //    ClearPhysicsTexture(tile);
-        //    for (int layer = 0; layer < terrainData.alphamapLayers; layer++) {
-        //        mat.SetTexture("_MainTex", terrainData.splatPrototypes[layer].texture);
-        //        Vector2 tileSize = terrainData.splatPrototypes[layer].tileSize;
-        //        mat.mainTextureScale = new Vector2(terrainData.size.x / tileSize.x, terrainData.size.z / tileSize.y);
-        //        mat.mainTextureOffset = terrainData.splatPrototypes[layer].tileOffset;
-        //        mat.SetVector("_MainTexST", new Vector4(mat.mainTextureScale.x, mat.mainTextureScale.y, mat.mainTextureOffset.x, mat.mainTextureOffset.y));
-        //        mat.SetTexture("_SplatAlpha", terrainData.alphamapTextures[layer / 4]);
-        //        mat.SetFloat("_SplatIndex", layer % 4);
-        //        float bd = node.size * (4 / (tile.size * physicsSize));//border
-        //        mat.SetVector("_SrcRectST", new Vector4(node.size + bd * 2, node.size + bd * 2, node.x - bd, node.y - bd) / quadTreeSize);
-        //        Graphics.DrawTexture(rect, mat.mainTexture, mat, 1);
-        //    }
-        //}
-        //
-        //void ClearPhysicsTexture(PhysicsTile tile)
-        //{
-        //    Rect rect = new Rect(tile.uv.x * physicsSize, tile.uv.y * physicsSize, tile.size * physicsSize, tile.size * physicsSize);
-        //    Graphics.DrawTexture(rect, nullTexture, updatePhysicsMaterial, 0);
-        //}
+        void OnDeleteNode(QtNode node)
+        {
+            PhysicsTile tile = node.tile;
+            updatePhysicsCommandDrawList.Add(new UpdatePhysicalTextureCommand(tile, physicsSize, null, 0));//clear
+            UpdatePhysicsTexture();
+            tileManager.Recyle(tile);
+            node.tile = null;
+            nodesToUpdate.Add(new UpdateIndirectiveCommand(node, true));
+        }
 
         void UpdateIndirectiveTexture()
         {
+            
             RenderTexture.active = indirectiveTexture;
             GL.LoadPixelMatrix(0, quadTreeSize, 0, quadTreeSize);
-
             for (int i = 0; i < nodesToUpdate.Count; i++) {
                 UpdateIndirectiveCommand cmd = nodesToUpdate[i];
                 Rect rect = new Rect(cmd.nodeX, cmd.nodeY, cmd.nodeSize, cmd.nodeSize);
-                Color color = new Color(cmd.tx / 255.0f, cmd.ty / 255.0f, Mathf.Log(cmd.nodeSize, 2) / 255.0f, 1);
+                Color color = cmd.clear?Color.black: new Color(cmd.tx / 255.0f, cmd.ty / 255.0f, Mathf.Log(cmd.nodeSize, 2) / 255.0f, 1);
                 updateIndirectiveMaterial.SetColor("_Color", color);
                 Graphics.DrawTexture(rect, nullTexture, updateIndirectiveMaterial);
             }
             nodesToUpdate.Clear();
         }
 
-        void UpdatePhysicsTexture(bool normal)
+        bool HasAlpha(Texture2D texture)
         {
-            RenderTexture.active = normal?physicsNormal: physicsTexture;
-            GL.LoadPixelMatrix(0, physicsSize, 0, physicsSize);
+            return (texture.format == TextureFormat.Alpha8 
+                || texture.format == TextureFormat.ARGB4444 
+                || texture.format == TextureFormat.ARGB32 
+                || texture.format == TextureFormat.DXT5 
+                || texture.format == TextureFormat.PVRTC_RGBA2 
+                || texture.format == TextureFormat.PVRTC_RGBA4 
+                || texture.format == TextureFormat.ATC_RGBA8
+                || texture.format == TextureFormat.ETC2_RGBA1
+                || texture.format == TextureFormat.ETC2_RGBA8
+                );
+        }
 
-            for(int i =0; i<updatePhysicsCommandDrawList.Count; i++) {
+        public bool disableDrawVT;
+        public bool disableUpdateVT;
+
+        void CopyToTexture() {
+            for (int i = 0; i < updatePhysicsCommandDrawList.Count; i++) {
                 UpdatePhysicalTextureCommand cmd = updatePhysicsCommandDrawList[i];
-                Graphics.DrawTexture(cmd.dest, nullTexture, updatePhysicsMaterial, 0);//clear
-                if(cmd.src!= null) {
+                if (cmd.rt != null) {
+                    if (!disableUpdateVT) {
+                        Graphics.CopyTexture(tempPhysicsTexture2, 0, 0, (int)cmd.tempRect.xMin, (int)cmd.tempRect.yMin, physicsTileSize, physicsTileSize, physicsTexture , 0, 0, (int)cmd.dest.xMin, (int)cmd.dest.yMin);
+                        Graphics.CopyTexture(tempPhysicsNormal2, 0, 0, (int)cmd.tempRect.xMin, (int)cmd.tempRect.yMin, physicsTileSize, physicsTileSize, physicsNormal, 0, 0, (int)cmd.dest.xMin, (int)cmd.dest.yMin);
+                    }
+                }
+            }
+            updatePhysicsCommandDrawList.RemoveAll(item => item.rt != null);
+        }
+
+        void UpdatePhysicsTexture2(bool normal) {
+            RenderTexture.active = normal ? tempPhysicsNormal2 : tempPhysicsTexture2;
+            GL.LoadPixelMatrix(0, physicsTileSize * 4, 0, physicsTileSize * 4);
+            RenderTexture.active.DiscardContents();
+            for (int i = 0; i < updatePhysicsCommandDrawList.Count && i<16; i++) {
+                Rect dest = new Rect((i % 4) * physicsSize, (i / 4) * physicsSize , physicsTileSize, physicsTileSize);
+
+                UpdatePhysicalTextureCommand cmd = updatePhysicsCommandDrawList[i];
+                cmd.rt = RenderTexture.active;
+                Graphics.DrawTexture(dest, nullTexture, updatePhysicsMaterial, 0);//clear
+                if (cmd.src != null) {
+                    cmd.tempRect = dest;
                     Material mat = updatePhysicsMaterial;
                     TerrainData terrainData = terrain.terrainData;
-                    Graphics.DrawTexture(cmd.dest, nullTexture, updatePhysicsMaterial, 0);//clear
-                    for (int layer = 0; layer < terrainData.alphamapLayers; layer++) {
-                        mat.mainTexture = terrainData.splatPrototypes[layer].texture;
-                        mat.SetTexture("_PhysicalNormal", terrainData.splatPrototypes[layer].normalMap);
-                        Vector2 tileSize = terrainData.splatPrototypes[layer].tileSize;
+                    if (!disableDrawVT) {
+                        for (int layer = 0; layer < terrainData.alphamapLayers; layer++) {
+                            mat.SetTexture("_VTMainTex" + layer, normal ? terrainData.splatPrototypes[layer].normalMap : terrainData.splatPrototypes[layer].texture);
+                            bool hasAlpha = HasAlpha(terrainData.splatPrototypes[layer].texture);
+                            mat.SetFloat("_VTSmoothness", hasAlpha ? 1 : terrainData.splatPrototypes[layer].smoothness);
+                            if (layer % 4 == 0) {
+                                mat.SetTexture("_VTSplatAlpha" + layer / 4, terrainData.alphamapTextures[layer / 4]);
+                            }
+                        }
+                        Vector2 tileSize = terrainData.splatPrototypes[0].tileSize;
                         mat.mainTextureScale = new Vector2(terrainData.size.x / tileSize.x, terrainData.size.z / tileSize.y);
-                        mat.mainTextureOffset = terrainData.splatPrototypes[layer].tileOffset;
-                        mat.SetVector("_MainTexST", new Vector4(mat.mainTextureScale.x, mat.mainTextureScale.y, mat.mainTextureOffset.x, mat.mainTextureOffset.y));
-                        mat.SetTexture("_SplatAlpha", terrainData.alphamapTextures[layer / 4]);
-                        mat.SetFloat("_SplatIndex", layer % 4);
-                        mat.SetVector("_SrcRectST", cmd.src);
-                        Graphics.DrawTexture(cmd.dest, mat.mainTexture, mat, normal ? 2 : 1);
+                        mat.mainTextureOffset = terrainData.splatPrototypes[0].tileOffset;
+                        mat.SetVector("_VTMainTexST", new Vector4(mat.mainTextureScale.x, mat.mainTextureScale.y, mat.mainTextureOffset.x, mat.mainTextureOffset.y));
+                        mat.SetVector("_VTSrcRectST", cmd.src);
+                        Graphics.DrawTexture(dest, Texture2D.whiteTexture, mat, normal ? 1 : 0);
+                    }
+                }
+            }
+        }
+
+        //CommandBuffer cmdBuf;
+        //void UpdatePhysicsTexture(bool normal) {
+        //    if (cmdBuf != null) {
+        //        Camera.main.RemoveCommandBuffer(CameraEvent.AfterEverything, cmdBuf);
+        //    }
+        //
+        //    cmdBuf = new CommandBuffer();
+        //    RenderTexture rt = normal ? tempPhysicsNormal : tempPhysicsTexture;
+        //    cmdBuf.SetRenderTarget(rt);
+        //    cmdBuf.SetViewport(new Rect(0, 0, physicsTileSize, physicsTileSize));
+        //    //RenderTexture.active = normal ? tempPhysicsNormal : tempPhysicsTexture;
+        //    //GL.LoadPixelMatrix(0, physicsTileSize, 0, physicsTileSize);
+        //    //RenderTexture.active.DiscardContents();
+        //    Rect dest = new Rect(0, 0, physicsTileSize, physicsTileSize);
+        //
+        //    for (int i = 0; i < updatePhysicsCommandDrawList.Count; i++) {
+        //        cmdBuf.ClearRenderTarget(true, true, Color.black);
+        //        UpdatePhysicalTextureCommand cmd = updatePhysicsCommandDrawList[i];
+        //        //Graphics.DrawTexture(dest, nullTexture, updatePhysicsMaterial, 0);//clear
+        //        cmdBuf.Blit(nullTexture, rt, updatePhysicsMaterial, 0);
+        //        if (cmd.src != null) {
+        //            Material mat = updatePhysicsMaterial;
+        //            TerrainData terrainData = terrain.terrainData;
+        //            if (!disableDrawVT) {
+        //                for (int layer = 0; layer < terrainData.alphamapLayers; layer++) {
+        //                    cmdBuf.SetGlobalTexture("_VTMainTex" + layer, normal ? terrainData.splatPrototypes[layer].normalMap : terrainData.splatPrototypes[layer].texture);
+        //                    bool hasAlpha = HasAlpha(terrainData.splatPrototypes[layer].texture);
+        //                    cmdBuf.SetGlobalFloat("_VTSmoothness", hasAlpha ? 1 : terrainData.splatPrototypes[layer].smoothness);
+        //                    if (layer % 4 == 0) {
+        //                        cmdBuf.SetGlobalTexture("_VTSplatAlpha" + layer / 4, terrainData.alphamapTextures[layer / 4]);
+        //                    }
+        //                }
+        //                Vector2 tileSize = terrainData.splatPrototypes[0].tileSize;
+        //                Vector2 mainTextureScale = new Vector2(terrainData.size.x / tileSize.x, terrainData.size.z / tileSize.y);
+        //                Vector2 mainTextureOffset = terrainData.splatPrototypes[0].tileOffset;
+        //                cmdBuf.SetGlobalVector("_VTMainTexST", new Vector4(mainTextureScale.x, mainTextureScale.y, mainTextureOffset.x, mainTextureOffset.y));
+        //                cmdBuf.SetGlobalVector("_VTSrcRectST", cmd.src);
+        //                cmdBuf.Blit(nullTexture, rt, mat,normal ? 1 : 0);
+        //                //Graphics.DrawTexture(dest, Texture2D.whiteTexture, mat, normal ? 1 : 0);
+        //            }
+        //            if (!disableUpdateVT) {
+        //                cmdBuf.CopyTexture(rt, 0,0, 0, 0, physicsTileSize, physicsTileSize, normal ? physicsNormal : physicsTexture, 0, 0, (int)cmd.dest.xMin, (int)cmd.dest.yMin);
+        //                //Graphics.CopyTexture(RenderTexture.active, 0, 0, 0, 0, physicsTileSize, physicsTileSize, normal ? physicsNormal : physicsTexture, 0, 0, (int)cmd.dest.xMin, (int)cmd.dest.yMin);
+        //            }
+        //        }
+        //    }
+        //    //Camera.main.AddCommandBuffer(CameraEvent.AfterEverything, cmdBuf);
+        //    Graphics.ExecuteCommandBuffer(cmdBuf);
+        //}
+
+        void UpdatePhysicsTexture(bool normal)
+        {
+            RenderTexture.active = normal ? tempPhysicsNormal : tempPhysicsTexture;
+            GL.LoadPixelMatrix(0, physicsTileSize, 0, physicsTileSize);
+            Rect dest = new Rect(0, 0, physicsTileSize, physicsTileSize);
+
+            for (int i = 0; i < updatePhysicsCommandDrawList.Count; i++) {
+                RenderTexture.active.DiscardContents();
+                UpdatePhysicalTextureCommand cmd = updatePhysicsCommandDrawList[i];
+                Graphics.DrawTexture(dest, nullTexture, updatePhysicsMaterial, 0);//clear
+                if (cmd.src != null) {
+                    Material mat = updatePhysicsMaterial;
+                    TerrainData terrainData = terrain.terrainData;
+                    if (!disableDrawVT) {
+                        for (int layer = 0; layer < terrainData.alphamapLayers; layer++) {
+                            mat.SetTexture("_VTMainTex" + layer, normal ? terrainData.splatPrototypes[layer].normalMap : terrainData.splatPrototypes[layer].texture);
+                            bool hasAlpha = HasAlpha(terrainData.splatPrototypes[layer].texture);
+                            mat.SetFloat("_VTSmoothness", hasAlpha ? 1 : terrainData.splatPrototypes[layer].smoothness);
+                            if (layer % 4 == 0) {
+                                mat.SetTexture("_VTSplatAlpha" + layer/4, terrainData.alphamapTextures[layer / 4]);
+                            }
+                        }
+                        Vector2 tileSize = terrainData.splatPrototypes[0].tileSize;
+                        mat.mainTextureScale = new Vector2(terrainData.size.x / tileSize.x, terrainData.size.z / tileSize.y);
+                        mat.mainTextureOffset = terrainData.splatPrototypes[0].tileOffset;
+                        mat.SetVector("_VTMainTexST", new Vector4(mat.mainTextureScale.x, mat.mainTextureScale.y, mat.mainTextureOffset.x, mat.mainTextureOffset.y));
+                        mat.SetVector("_VTSrcRectST", cmd.src);
+                        Graphics.DrawTexture(dest, Texture2D.whiteTexture, mat, normal ? 1 : 0);
+                    }
+                    if (!disableUpdateVT) {
+                        Graphics.CopyTexture(RenderTexture.active, 0, 0, 0, 0, physicsTileSize, physicsTileSize, normal ? physicsNormal : physicsTexture, 0, 0, (int)cmd.dest.xMin, (int)cmd.dest.yMin);
                     }
                 }
             }
@@ -247,6 +309,7 @@ namespace VirtualTexture
 
         void UpdatePhysicsTexture()
         {
+            //CopyToTexture();
             UpdatePhysicsTexture(false);
             UpdatePhysicsTexture(true);
             updatePhysicsCommandDrawList.Clear();
@@ -257,8 +320,13 @@ namespace VirtualTexture
 
             GL.PushMatrix();
 
-            Vector3 camPos = terrain.transform.InverseTransformPoint(Camera.main.transform.position);
-            qt.Update(new Vector2(camPos.x, camPos.z) * quadTreeSize / terrain.terrainData.size.x);
+            Vector3 center = Camera.main.transform.position;
+            if (CameraManager.Instance && CameraManager.Instance.controller.GetFollowTargetObject()) {
+                center = CameraManager.Instance.controller.GetFollowTargetObject().transform.position;
+            }
+
+            Vector3 camPos = terrain.transform.InverseTransformPoint(center);
+            qt.Update(new Vector2(camPos.x, camPos.z) * quadTreeSize / terrain.terrainData.size.x,70 * quadTreeSize / terrain.terrainData.size.x);
 
             UpdatePhysicsTexture();
             UpdateIndirectiveTexture();
@@ -286,13 +354,18 @@ namespace VirtualTexture
     }
     public class UpdateIndirectiveCommand
     {
-        public UpdateIndirectiveCommand(QtNode node)
+        public UpdateIndirectiveCommand(QtNode node,bool clear)
         {
             nodeX = node.x; nodeY = node.y;
             nodeSize = node.size;
-            tx = node.tile.x;
-            ty = node.tile.y;
+            if (!clear) {
+                tx = node.tile.x;
+                ty = node.tile.y;
+            }
+            this.clear = clear;
         }
+        public bool clear;
+
         public int nodeX;//四叉树的节点位置x
         public int nodeY;//四叉树节点y
         public int nodeSize;//四叉树节点的大小
@@ -312,7 +385,9 @@ namespace VirtualTexture
             }
         }
         public Vector4 src;//源：地图上的位置
+        public Rect tempRect;
         public Rect dest;//目标：物理纹理上的位置
+        public RenderTexture rt;
     }
 
     public class QtNode
@@ -347,60 +422,97 @@ namespace VirtualTexture
     public class QuadTree
     {
         public QtNode root = null;
-        public System.Action<QtNode> funPrevSplit;
-        public System.Action<QtNode> funPostSplit;
-        public System.Action<QtNode> funPrevMerge;
-        public System.Action<QtNode> funPostMerge;
+
+        public System.Action<QtNode> funNewNode;
+        public System.Action<QtNode> funDeleteNode;
+
         public void Init(int size)
         {
             root = new QtNode(0, 0, size);
         }
-        public void Update(Vector2 camPos)
+        public void Update(Vector2 camPos,float maxDistance)
         {
-            UpdateMerge(root, camPos);
-            UpdateSplit(root, camPos);
+            UpdateMerge(root, camPos, maxDistance);
+            UpdateSplit(root, camPos, maxDistance);
+            UpdateRange(root, camPos, maxDistance);
         }
 
-        bool needSplit(QtNode node, Vector2 camPos)
+        bool NeedSplit(QtNode node, Vector2 camPos)
         {
             float length = (node.Center - camPos).magnitude;
             return length < node.size * 1.8f && node.size > 1;
         }
 
-        void UpdateMerge(QtNode node, Vector2 camPos)
+        bool InRange(QtNode node,Vector2 camPos,float maxDistance)
         {
-            if (!needSplit(node,camPos)) {
+            return true;
+            float distance = (node.Center - camPos).magnitude - node.size * 0.5f * 1.5f;
+            return distance < maxDistance;
+        }
+
+        void UpdateMerge(QtNode node, Vector2 camPos, float maxDistance)
+        {
+            if (!NeedSplit(node, camPos)) {
                 if (node.children != null) {
                     for (int i = 0; i < 4; i++) {
-                        UpdateMerge(node.children[i], camPos);
+                        UpdateMerge(node.children[i], camPos, maxDistance);
+                        if (node.children[i].tile != null) {
+                            funDeleteNode(node.children[i]);
+                        }
                     }
-                    funPrevMerge(node);
                     node.Merge();
-                    funPostMerge(node);
+                    if (InRange(node, camPos, maxDistance)) {
+                        funNewNode(node);
+                    }
                 }
             } else {
-                if(node.children != null) {
+                if (node.children != null) {
                     for (int i = 0; i < 4; i++) {
-                        UpdateMerge(node.children[i], camPos);
+                        UpdateMerge(node.children[i], camPos, maxDistance);
                     }
                 }
             }
         }
 
-        void UpdateSplit(QtNode node, Vector2 camPos)
+        void UpdateSplit(QtNode node, Vector2 camPos, float maxDistance)
         {
-            if (needSplit(node, camPos)) {
+            if (NeedSplit(node, camPos)) {
                 if (node.children == null) {
-                    funPrevSplit(node);
+                    if (node.tile != null) {
+                        funDeleteNode(node);
+                    }
                     node.Split();
-                    funPostSplit(node);
+                    for (int i = 0; i<4; i++) {
+                        if(InRange(node.children[i], camPos, maxDistance)) {
+                            funNewNode(node.children[i]);
+                        }
+                    }
                 }
                 if (node.children != null) {
                     for (int i = 0; i < 4; i++) {
-                        UpdateSplit(node.children[i], camPos);
+                        UpdateSplit(node.children[i], camPos, maxDistance);
                     }
                 }
-            } 
+            }
+        }
+
+        void UpdateRange(QtNode node,Vector2 camPos,float maxDistance)
+        {
+            if(node.children == null) {
+                if(node.tile == null) {
+                    if (InRange(node, camPos, maxDistance)) {
+                        funNewNode(node);
+                    }
+                } else {
+                    if (!InRange(node, camPos, maxDistance)) {
+                        funDeleteNode(node);
+                    }
+                }
+            } else {
+                for (int i = 0; i < 4; i++) {
+                    UpdateRange(node.children[i], camPos, maxDistance);
+                }
+            }
         }
     }
 

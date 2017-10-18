@@ -85,7 +85,7 @@ Shader "Nature/Terrain/VTStandard" {
 			fixed4 mixedDiffuse = tex2D(_PhysicalTex, puv);
 			o.Albedo = mixedDiffuse.rgb;
 			o.Alpha = 1;
-			o.Smoothness = 0;
+			o.Smoothness = mixedDiffuse.a;
 			o.Normal = mixedNormal;
 			o.Metallic = 0;
 		}
