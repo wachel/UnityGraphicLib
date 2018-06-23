@@ -171,10 +171,10 @@ namespace TerrainConverter
                 int w = terrainData.heightmapWidth - 1;
                 int gridNumX = w / gridSize;
                 Vector2 camera = new Vector2(Camera.main.transform.position.x, Camera.main.transform.position.z);
-                if(CameraManager.Instance && CameraManager.Instance.controller.GetFollowTargetObject()) {
-                    Vector3 targetPos = CameraManager.Instance.controller.GetFollowTargetObject().transform.position;
-                    camera = new Vector2(targetPos.x, targetPos.z);
-                }
+                //if(CameraManager.Instance && CameraManager.Instance.controller.GetFollowTargetObject()) {
+                //    Vector3 targetPos = CameraManager.Instance.controller.GetFollowTargetObject().transform.position;
+                //    camera = new Vector2(targetPos.x, targetPos.z);
+                //}
                 float viewDistance = Camera.main.farClipPlane;
                 for (int x = 0; x < gridNumX; x++) {
                     for (int y = 0; y < gridNumX; y++) {

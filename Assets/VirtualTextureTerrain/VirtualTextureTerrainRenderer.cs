@@ -57,11 +57,11 @@ namespace VirtualTexture
             if (useNormalMap) {
                 physicsNormal = new Texture2D(physicsSize, physicsSize, TextureFormat.ARGB32,false);
             }
-            tempPhysicsTexture = new RenderTexture(physicsTileSize, physicsTileSize, 0, RenderTextureFormat.ARGB32);
-            tempPhysicsNormal = new RenderTexture(physicsTileSize, physicsTileSize, 0, RenderTextureFormat.ARGB32);
+            tempPhysicsTexture = new RenderTexture(physicsTileSize, physicsTileSize, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            tempPhysicsNormal = new RenderTexture(physicsTileSize, physicsTileSize, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 
-            tempPhysicsTexture2 = new RenderTexture(physicsTileSize * 4, physicsTileSize * 4, 0, RenderTextureFormat.ARGB32);
-            tempPhysicsNormal2 = new RenderTexture(physicsTileSize * 4, physicsTileSize * 4, 0, RenderTextureFormat.ARGB32);
+            tempPhysicsTexture2 = new RenderTexture(physicsTileSize * 4, physicsTileSize * 4, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            tempPhysicsNormal2 = new RenderTexture(physicsTileSize * 4, physicsTileSize * 4, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 
             updatePhysicsMaterial = new Material(Shader.Find("Hidden/VTBakeBaseTexture"));
             nullTexture = new Texture2D(1, 1);
@@ -70,7 +70,7 @@ namespace VirtualTexture
             defaultNormal.Apply();
 
             indirectiveTextureSize = quadTreeSize;
-            indirectiveTexture = new RenderTexture(indirectiveTextureSize, indirectiveTextureSize, 0, RenderTextureFormat.ARGB32);
+            indirectiveTexture = new RenderTexture(indirectiveTextureSize, indirectiveTextureSize, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             indirectiveTexture.filterMode = FilterMode.Point;
             indirectiveTexture.useMipMap = false;
             updateIndirectiveMaterial = new Material(Shader.Find("Hidden/VTUpdateIndirectiveTexture"));
@@ -321,9 +321,9 @@ namespace VirtualTexture
             GL.PushMatrix();
 
             Vector3 center = Camera.main.transform.position;
-            if (CameraManager.Instance && CameraManager.Instance.controller.GetFollowTargetObject()) {
-                center = CameraManager.Instance.controller.GetFollowTargetObject().transform.position;
-            }
+            //if (CameraManager.Instance && CameraManager.Instance.controller.GetFollowTargetObject()) {
+            //    center = CameraManager.Instance.controller.GetFollowTargetObject().transform.position;
+            //}
 
             Vector3 camPos = terrain.transform.InverseTransformPoint(center);
             qt.Update(new Vector2(camPos.x, camPos.z) * quadTreeSize / terrain.terrainData.size.x,70 * quadTreeSize / terrain.terrainData.size.x);
